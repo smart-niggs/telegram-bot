@@ -8,7 +8,13 @@ let screaming = false;
 //Create a new bot
 const bot = new Bot(process.env.TELEGRAM_TOKEN!);
 
-
+/* 
+  COMMANDS
+*/
+bot.command("start", (ctx) => ctx.reply(
+  `Welcome! Up and running.\n
+  Use /menu to show the menu options`
+));
 
 //This function handles the /scream command
 bot.command("scream", () => {
@@ -16,10 +22,60 @@ bot.command("scream", () => {
   screaming = true;
 });
 
-//This function handles /whisper command
+// This function handles /whisper command
 bot.command("whisper", () => {
   screaming = false;
 });
+
+/* 
+  MESSAGES
+*/
+bot.hears(/.*ping.*/, async (ctx) => {
+  // `reply` is an alias for `sendMessage` in the same chat (see next section).
+  await ctx.reply("pong!!", {
+    // `reply_parameters` specifies the actual reply feature.
+    reply_parameters: { message_id: ctx.msg.message_id },
+    reply_markup: { force_reply: true },
+  });
+});
+
+//This function would be added to the dispatcher as a handler for messages coming from the Bot API
+bot.on(":text", async (ctx) => {
+  const message = ctx.msg.text!
+  // Print to console
+  console.log(
+    `${ctx.from!.first_name} wrote ${message}`,
+  );
+  // send dm to the user
+  // ctx.api.sendMessage(ctx.from!.id, `${ctx.from!.first_name} wrote ${message}`)
+
+  if (screaming && ctx.msg.text) {
+    // Scream the message
+    await ctx.reply(ctx.msg.text.toUpperCase(), {
+      entities: ctx.msg.entities,
+      reply_parameters: { message_id: ctx.msg.message_id }
+    });
+  } else {
+    ctx.reply(message, {
+      // entities: ctx.message.entities,
+      reply_parameters: { message_id: ctx.msg.message_id }
+    })
+  }
+});
+
+bot.on(":media");
+bot.on(":file");
+bot.on(["message", "edited_message"] /* , ... */);
+bot.on("message:photo", (ctx) => {
+  console.log(
+    `${ctx.from.first_name} sent a photo`,
+  );
+});
+
+
+/* 
+  CREATE A MENU 
+*/
 
 //Pre-assign menu text
 const firstMenu = "<b>Menu 1</b>\n\nA beautiful menu with a shiny inline button.";
@@ -34,7 +90,6 @@ const tutorialButton = "Tutorial";
 const firstMenuMarkup = new InlineKeyboard().text(nextButton, nextButton);
 const secondMenuMarkup = new InlineKeyboard().text(backButton, backButton).text(tutorialButton, "https://core.telegram.org/bots/tutorial");
 
-bot.command("start", (ctx) => ctx.reply("Welcome! Up and running."));
 
 //This handler sends a menu with the inline buttons we pre-assigned above
 bot.command("menu", async (ctx) => {
@@ -62,27 +117,6 @@ bot.callbackQuery(nextButton, async (ctx) => {
   });
 });
 
-
-//This function would be added to the dispatcher as a handler for messages coming from the Bot API
-bot.on("message", async (ctx) => {
-  const message = ctx.message.text!
-  //Print to console
-  console.log(
-    `${ctx.from.first_name} wrote ${"text" in ctx.message ? ctx.message.text : ""
-    }`,
-  );
-
-  if (screaming && ctx.message.text) {
-    //Scream the message
-    await ctx.reply(ctx.message.text.toUpperCase(), {
-      entities: ctx.message.entities,
-    });
-  } else {
-    ctx.reply(message)
-    //This is equivalent to forwarding, without the sender's name
-    // await ctx.copyMessage(ctx.message.chat.id);
-  }
-});
 
 //Start the Bot
 bot.start();
